@@ -176,6 +176,9 @@ RADAR.vars =
 
 		-- The volume of the doppler audio 
 		["dopAudio"] = CONFIG.menuDefaults["dopAud"],
+		
+		-- The antenna in which to play doppler audio on 
+		["dopDirection"] = CONFIG.menuDefaults["dopDirection"],
 
 		-- The speed unit used in conversions
 		["speedType"] = CONFIG.menuDefaults["speedType"],
@@ -198,7 +201,8 @@ RADAR.vars =
 		{ displayText = { "bEE", "P¦¦" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 }, optionIndex = -1, settingText = "beep" },
 		{ displayText = { "VOI", "CE¦" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 }, optionIndex = -1, settingText = "voice" },
 		{ displayText = { "PLt", "AUd" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 }, optionIndex = -1, settingText = "plateAudio" },
-		{ displayText = { "DOP", "AUd" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 }, optionIndex = -1, settingText = "dopAudio" },
+		{ displayText = { "DOP", "AUd" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.02, 0.04, 0.06, 0.08, 0.1 }, optionIndex = -1, settingText = "dopAudio" },
+		{ displayText = { "DOP", "DIR" }, optionsText = { "FNT", "RER", "BTH" }, options = { 1, 2, 3 }, optionIndex = -1, settingText = "dopDirection" },
 		{ displayText = { "Uni", "tS¦" }, optionsText = { "USA", "INT" }, options = { "mph", "kmh" }, optionIndex = -1, settingText = "speedType" }
 	},
 
@@ -269,6 +273,9 @@ RADAR.vars =
 
 	-- Key lock, when true, prevents any of the radar's key events from working, like the ELS key lock
 	keyLock = false
+	
+	-- Current or last doppler state that was sent to JS/NUI
+	dopplerState = false
 }
 
 -- Speed conversion values
@@ -531,6 +538,7 @@ function RADAR:GetKeyLockState()
 end
 
 function RADAR:SetDopplerState( state )
+	self.vars.dopplerState = state
 	local dopVol = self:GetSettingValue( "dopAudio" )
 
 	if ( dopVol ~= 0.0 ) then
@@ -1684,6 +1692,8 @@ function RADAR:RunThreads()
 			-- Reset the ray trace state to 0
 			self:ResetRayTraceState()
 		end
+	elseif self.vars.dopplerState == true then
+		self:SetDopplerState(false)
 	end
 end
 
@@ -1762,7 +1772,17 @@ function RADAR:Main()
 
 							-- Set the doppler audio value to the exact vehicle entity speed, this way the doppler audio will be the same for
 							-- MPH and KMH
-							data.antennas[ant][i].dopValue = vehSpeed
+							-- BOTH DIRECTIONS
+							local dopDir = self:GetSettingValue('dopDirection')
+							if dopDir == 3 then
+								data.antennas[ant][i].dopValue = vehSpeed
+							-- FRONT DIRECTION
+							elseif dopDir == 1 and ant == "front" then
+								data.antennas[ant][i].dopValue = vehSpeed
+							-- REAR DIRECTION
+							elseif dopDir == 2 and ant == "rear" then
+								data.antennas[ant][i].dopValue = vehSpeed
+							end
 
 							-- Work out if the vehicle is closing or away
 							local ownH = UTIL:Round( GetEntityHeading( PLY.veh ), 0 )
