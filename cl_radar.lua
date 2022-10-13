@@ -272,7 +272,7 @@ RADAR.vars =
 	threadWaitTime = 500,
 
 	-- Key lock, when true, prevents any of the radar's key events from working, like the ELS key lock
-	keyLock = false
+	keyLock = false,
 	
 	-- Current or last doppler state that was sent to JS/NUI
 	dopplerState = false
