@@ -353,7 +353,7 @@ button:focus { outline: none; }
 	
 	#radar .patrol_and_logo_container {
 		display: grid;
-		grid-template-rows: repeat( 3, 1fr );
+		grid-template-rows: auto;
 		justify-items: center;
 		align-items: center;
 		height: 100%;
@@ -379,7 +379,12 @@ button:focus { outline: none; }
 
 		#radar .patrol_and_logo_container .speed_label {
 			color: rgb( 255, 255, 255 );
-			margin-bottom: 40px;
+			margin-top: -5px;
+			margin-bottom: 0px;
+		}		
+		
+		#radar .patrol_and_logo_container .doppler_mute_container {
+			margin: -15px 0px 0px 0px;
 		}
 	
 	/* Colours and fonts used in multiple areas that are similar */

@@ -151,6 +151,7 @@ const elements =
 	},
 
 	patrolSpeed: $( "#patrolSpeed" ),
+	dopplerMute: $( "#dopplerMuteLabel" ),
 
 	antennas: {
 		front: {
@@ -339,6 +340,17 @@ function setAntennaLock( ant, state )
 {
 	// Lighten or dull the lock led based on the given state
 	setLight( ant, "fast", "lockLabel", state ); 
+}
+
+// Sets the doppler mute light
+function setDopplerMute( state )
+{
+	// Lighten or dull the lock led based on the given state since its mute negate
+	if ( state ) {
+		elements.dopplerMute.addClass( "active" ); 
+	} else {
+		elements.dopplerMute.removeClass( "active" ); 
+	}
 }
 
 // Sets the directional arrows light for the given antenna
@@ -592,7 +604,7 @@ function settingUpdate( ants )
 	Doppler audio 
 ------------------------------------------------------------------------------------*/
 const context = new AudioContext();
-var dopplerVol = 0.2; 
+var dopplerVol = 0.02; 
 
 let dopplerObjects = {
 	front: createDopplerObject( context ),
@@ -631,10 +643,8 @@ function createDopplerObject( audioContext )
 
 function updateDoppler( ant, speed )
 {
-	if ( speed > 0 ) {
+	if ( speed > 5 ) {
 		let freq = ( speed * 30 ) + ( Math.random() * 15 );
-		console.log( freq );
-
 		dopplerObjects[ant].osc.frequency.exponentialRampToValueAtTime( freq, context.currentTime + 0.1 );
 		dopplerObjects[ant].vol.gain.exponentialRampToValueAtTime( dopplerVol, context.currentTime + 0.1 );
 	} else {
@@ -1219,6 +1229,9 @@ window.addEventListener( "message", function( event ) {
 			break; 
 		case "dopplerVolume":
 			setDopplerVol( item.vol );
+			break;
+		case "dopplerMute":
+			setDopplerMute( item.state );
 			break;
 		case "dopplerState":
 			setDopplerState( item.state );
