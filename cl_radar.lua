@@ -50,7 +50,27 @@ local function RegisterKeyBinds()
 		-- Opens the remote control
 		RegisterCommand( "radar_remote", function()
 			if ( not RADAR:GetKeyLockState() ) then
-				RADAR:OpenRemote()
+				-- Left Shift + radar_remote key toggles Doppler audio mute
+				if IsControlPressed(0, 61) then
+					local previousDopplerVolume = RADAR:GetPreviousDopplerAudio() 
+					local currentDopplerVolume = RADAR:GetSettingValue( "dopAudio" )
+					--	Reset doppler audio to previousDopplerAudio value, or save and set to 0.0
+					if ( currentDopplerVolume ~= previousDopplerVolume ) then
+						RADAR:SetSettingValue( "dopAudio", previousDopplerVolume)
+						SendNUIMessage( { _type = "dopplerMute", state = false } )
+						print('unmuting')
+					else
+						RADAR:SetPreviousDopplerAudio( currentDopplerVolume )
+						RADAR:SetSettingValue( "dopAudio", 0.0)
+						SendNUIMessage( { _type = "dopplerMute", state = true } )
+						print('muting')
+					end
+					SendNUIMessage( { _type = "dopplerVolume", vol = RADAR:GetSettingValue( "dopAudio" ) } )
+					SendNUIMessage( { _type = "audio", name = "beep", vol = RADAR:GetSettingValue( "beep" ) } )
+				-- Open Radar
+				else
+					RADAR:OpenRemote()
+				end
 			end
 		end )
 		RegisterKeyMapping( "radar_remote", "Open Remote Control", "keyboard", CONFIG.keyDefaults.remote_control )
@@ -100,7 +120,7 @@ local function RegisterKeyBinds()
 			RADAR:ToggleKeyLock()
 		end )
 		RegisterKeyMapping( "radar_key_lock", "Toggle Keybind Lock", "keyboard", CONFIG.keyDefaults.key_lock )
-
+		
 		-- Deletes all of the KVPs
 		RegisterCommand( "reset_radar_data", function()
 			DeleteResourceKvp( "wk_wars2x_ui_data" )
@@ -155,6 +175,9 @@ RADAR.vars =
 	-- Whether or not the radar should be hidden, e.g. the display is active but the player then steps
 	-- out of their vehicle
 	hidden = false,
+	
+	-- Previous doppler audio volume when toggling via RegisteredCommand
+	previousDopplerAudio = CONFIG.menuDefaults["dopAud"],
 
 	-- These are the settings that are used in the operator menu
 	settings = {
@@ -201,7 +224,7 @@ RADAR.vars =
 		{ displayText = { "bEE", "P¦¦" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 }, optionIndex = -1, settingText = "beep" },
 		{ displayText = { "VOI", "CE¦" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 }, optionIndex = -1, settingText = "voice" },
 		{ displayText = { "PLt", "AUd" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 }, optionIndex = -1, settingText = "plateAudio" },
-		{ displayText = { "DOP", "AUd" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.02, 0.04, 0.06, 0.08, 0.1 }, optionIndex = -1, settingText = "dopAudio" },
+		{ displayText = { "DOP", "AUd" }, optionsText = { "Off", "¦1¦", "¦2¦", "¦3¦", "¦4¦", "¦5¦" }, options = { 0.0, 0.02, 0.03, 0.04, 0.05, 0.6 }, optionIndex = -1, settingText = "dopAudio" },
 		{ displayText = { "DOP", "DIR" }, optionsText = { "FNT", "RER", "BTH" }, options = { 1, 2, 3 }, optionIndex = -1, settingText = "dopDirection" },
 		{ displayText = { "Uni", "tS¦" }, optionsText = { "USA", "INT" }, options = { "mph", "kmh" }, optionIndex = -1, settingText = "speedType" }
 	},
@@ -316,6 +339,16 @@ function RADAR:SetPoweringUpState( state )
 	self.vars.poweringUp = state
 end
 
+-- Returns radars previous volume
+function RADAR:GetPreviousDopplerAudio()
+	return self.vars.previousDopplerAudio
+end
+
+-- Sets radars previous volume
+function RADAR:SetPreviousDopplerAudio( vol )
+	self.vars.previousDopplerAudio = vol
+end
+
 -- Toggles the radar power
 function RADAR:SetPowerState( state, instantOverride )
 	local currentState = self:IsPowerOn()
@@ -345,7 +378,6 @@ function RADAR:SetPowerState( state, instantOverride )
 
 					-- Let the UI side know the system has loaded
 					SendNUIMessage( { _type = "poweredUp", fast = self:IsFastDisplayEnabled() } )
-
 					Citizen.Wait( 200 )
 					self:SetDopplerState( true )
 				end )
@@ -356,7 +388,6 @@ function RADAR:SetPowerState( state, instantOverride )
 			-- If the system is being turned off, then we reset the antennas
 			self:ResetAntenna( "front" )
 			self:ResetAntenna( "rear" )
-
 			self:SetDopplerState( false )
 		end
 	end
@@ -1673,6 +1704,10 @@ function RADAR:RunThreads()
 	if ( PLY:CanViewRadar() and self:CanPerformMainTask() and self:IsEitherAntennaOn() ) then
 		-- Before we create any of the custom ray trace threads, we need to make sure that the ray trace state
 		-- is at zero, if it is not at zero, then it means the system is still currently tracing
+		if ( self:GetSettingValue( "dopAudio" ) ~= 0.0 and self.vars.dopplerState == false) then
+			self:SetDopplerState( true )
+		end
+		
 		if ( self:GetRayTraceState() == 0 ) then
 			-- Grab a copy of the vehicle pool
 			local vehs = self:GetVehiclePool()
@@ -1693,7 +1728,7 @@ function RADAR:RunThreads()
 			self:ResetRayTraceState()
 		end
 	elseif self.vars.dopplerState == true then
-		self:SetDopplerState(false)
+		self:SetDopplerState( false )
 	end
 end
 
