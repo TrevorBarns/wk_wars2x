@@ -112,7 +112,7 @@ CONFIG.menuDefaults =
 	["plateAudio"] = 0.6,
 
 	-- The volume of the doppler audio
-	-- Options: 0.0, 0.02, 0.04, 0.06, 0.08, 0.1
+	-- Options: 0.0, 0.02, 0.03, 0.04, 0.05, 0.6
 	["dopAud"] = 0.02,
 	
 	-- Antenna to play doppler audio on.
