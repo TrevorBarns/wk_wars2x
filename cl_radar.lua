@@ -58,12 +58,10 @@ local function RegisterKeyBinds()
 					if ( currentDopplerVolume ~= previousDopplerVolume ) then
 						RADAR:SetSettingValue( "dopAudio", previousDopplerVolume)
 						SendNUIMessage( { _type = "dopplerMute", state = false } )
-						print('unmuting')
 					else
 						RADAR:SetPreviousDopplerAudio( currentDopplerVolume )
 						RADAR:SetSettingValue( "dopAudio", 0.0)
 						SendNUIMessage( { _type = "dopplerMute", state = true } )
-						print('muting')
 					end
 					SendNUIMessage( { _type = "dopplerVolume", vol = RADAR:GetSettingValue( "dopAudio" ) } )
 					SendNUIMessage( { _type = "audio", name = "beep", vol = RADAR:GetSettingValue( "beep" ) } )
@@ -436,6 +434,7 @@ function RADAR:SendSettingUpdate()
 
 	-- Send a message to the NUI side with the current setting for the doppler audio volume
 	SendNUIMessage( { _type = "dopplerVolume", vol = self:GetSettingValue( "dopAudio" ) } )
+	RADAR:SetPreviousDopplerAudio( self:GetSettingValue( "dopAudio" ) )
 end
 
 -- Returns if a main task can be performed
@@ -749,6 +748,7 @@ function RADAR:LoadOMData()
 
 		-- Send the doppler volume
 		SendNUIMessage( { _type = "dopplerVolume", vol = self:GetSettingValue( "dopAudio" ) } )
+		RADAR:SetPreviousDopplerAudio( self:GetSettingValue( "dopAudio" ) )
 
 		UTIL:Log( "Saved operator menu data loaded!" )
 	else
